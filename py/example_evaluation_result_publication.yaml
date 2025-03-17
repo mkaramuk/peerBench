@@ -31,7 +31,23 @@ results_per_provider:
       - metric_name: averageRoundReponseTIme
         metric_type: int_ms
         metric_value: 202
-  - provider: Did:ridProvider:anthropic/claude-3-7-sonnet-20250219:0x6FCB287c943C1119c550F350B07e7B4c9f026412:anthropic.com/api
+  - provider: Did:ridProvider:0x6FCB287c943C1119c550F350B07e7B4c9f026412:anthropic.com/api
+    model_used: anthropic/claude-3-7-sonnet-20250219
+    score: 0.91
+    metrics:
+      - metric_name: average_BLUE
+        metric_type: float
+        metric_value: 91.1
+      - metric_name: ROC
+        metric_type: float
+        metric_value: 91.1
+      - metric_name: GRE
+        metric_type: float
+        metric_value: 91.1
+      - metric_name: averageRoundReponseTIme
+        metric_type: int_ms
+        metric_value: 402
+  - provider: Did:ridProvider:openrouter/anthropic/claude-3-7-sonnet-20250219::openrouter.com/api 
     score: 0.91
     metrics:
       - metric_name: average_BLUE
