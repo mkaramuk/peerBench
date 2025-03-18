@@ -13,11 +13,7 @@ dataPoint:
         detection_confidence: 0.98  # Confidence score for the cat detection
         processing_time: 2.5  # Time taken for processing the video (in seconds)
         frame_count: 300  # Total number of frames in the video
-        detected_objects:
-          - object_type: "cat"
-            frame_range: [50, 150]  # Frame range where the cat was detected
-          - object_type: "cat"
-            frame_range: [200, 250]  # Additional frame range where another cat was detected
+        detected_objects_cid: "abc123detected_objects_cid"  # CID pointing to the file containing detected objects data
       evals:
         contains_cat_correctness: 1  # 0 or 1 indicating whether the evaluation result matches the truth
         detection_accuracy: 0.95  # Model's accuracy in detecting objects in the video
