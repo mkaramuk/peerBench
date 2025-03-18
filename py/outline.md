@@ -9,8 +9,8 @@
 - Each of the validators need to have a place to store all of their API keys for each provider. [can start as env variables but later needs to be some KMS  ]
 - Validator registration simply to connect their public key to an organizations  email or domain. 
 - Validators decide which providers they want to test this is a simple config. It's a human decision to test people 
+- Validator must have the ability to upload scored resposnes. (The validator will have their employees score each resposne in excel or google sheets  ).  The evaluation defines how to aggregate the scores per prompt simple Average or Accuracy or more compelx BLUE score is determined by the Evaluation spec.   
 - SDK  helps produce  signed evlaution publications in schema example_evaluation_test_stream_publication.yaml  (these should be submitted within 7 days of the prompt or how ever long the Evaluation Stream stipulates)
-
 
 
 # Centralized Information aggregation server 
