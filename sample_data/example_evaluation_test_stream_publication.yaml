@@ -18,6 +18,9 @@ paper_BibTex: |                                   #optional
   primaryClass={cs.AI},
   url={https://arxiv.org/abs/2403.04132}, 
   }
+input_dimensions:
+  - input_name : prompt_text
+    input_type : string
 evaluation_dimensions: 
   - eval_name: BLUE 
     eval_type: float
