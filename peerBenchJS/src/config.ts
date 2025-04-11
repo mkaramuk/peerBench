@@ -6,7 +6,7 @@ import { mkdirSync } from "fs";
 import { LogLevels, NodeEnvs } from "./types";
 import { Address, privateKeyToAccount } from "viem/accounts";
 
-dotenv.config({ ignore: ["MISSING_ENV_FILE"] });
+dotenv.config({ ignore: ["MISSING_ENV_FILE"], logLevel: "blank", quiet: true });
 
 /**
  * Parses the environment variables based on the given fields.

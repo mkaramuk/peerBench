@@ -6,30 +6,11 @@ export type LogLevel = (typeof LogLevels)[number];
 
 export type MaybePromise<T> = T | Promise<T>;
 
-export type OutputFile = {
-  validatorDid: `did:val:${string}`;
-
-  providerDid: `did:prov:${string}`;
-
-  modelDid: `did:model:${string}`;
-
-  promptCid: string;
-  responseCid: string;
-  promptData: string;
-};
-
 export type ModelResponse = {
   startedAt: Date;
   completedAt: Date;
   response: string;
 };
-
-export const TaskFileFormats = {
-  BIG_BENCH: "BIG_BENCH",
-} as const;
-
-export type TaskFileFormat =
-  (typeof TaskFileFormats)[keyof typeof TaskFileFormats];
 
 export type Prompt = {
   id?: number | string;
@@ -54,6 +35,8 @@ export type PromptResponse = {
   repliedAt: number;
 
   evaluationRunId: string;
+
+  evaluationDID: string;
 };
 
 export type PromptScore = Omit<
@@ -68,16 +51,11 @@ export type PromptScore = Omit<
   score: number;
 };
 
-/**
- * DID of the evaluation types
- */
-export const EvaluationTypes = {
-  ExactEquality: "did:eval:exact-equality",
-  MultipleChoice: "did:eval:multiple-choice",
+export const MetricTypes = {
+  ExactEquality: "exact-equality",
+  MultipleChoice: "multiple-choice",
 } as const;
-
-export type EvaluationType =
-  (typeof EvaluationTypes)[keyof typeof EvaluationTypes];
+export type MetricType = (typeof MetricTypes)[keyof typeof MetricTypes];
 
 export type Task = {
   name: string;
@@ -85,7 +63,7 @@ export type Task = {
   inputSuffix?: string;
   outputPrefix?: string;
   outputSuffix?: string;
-  evaluationType: EvaluationType;
-  outputRegex?: RegExp;
+  metricTypes: MetricType[];
   prompts: Prompt[];
+  systemPrompt?: string;
 };

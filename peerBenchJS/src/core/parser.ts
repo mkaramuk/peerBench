@@ -49,6 +49,10 @@ export function parseIdentifier(identifier: string) {
   };
 }
 
+/**
+ * Parses JSONL formatted string into an array
+ * @returns An array of parsed JSON lines
+ */
 export function parseJSONL<T>(str: string): T[] {
   return str
     .split("\n") // Split per line
@@ -57,6 +61,12 @@ export function parseJSONL<T>(str: string): T[] {
     .filter((obj) => obj !== undefined); // Filter invalid lines
 }
 
+/**
+ * Extracts the first error message (if there is any)
+ * from a Zod safe parse result and format it.
+ * @param safeParseReturn
+ * @param path Path of the parsing object. It will be used to indicate the invalid field if the info is not available in the validation error.
+ */
 export function parseValidationError<T, K>(
   safeParseReturn: z.SafeParseReturnType<T, K>,
   path?: string
@@ -77,10 +87,23 @@ export function parseValidationError<T, K>(
   }
 }
 
+/**
+ * Parses provider name from a DID provider definition
+ */
 export function parseProviderDID(did: string) {
   return did.split(":")[2];
 }
 
+/**
+ * Parses evaluation name from a DID definition (yes it is the same thing as `parseProviderDID`)
+ */
+export function parseEvaluationDID(did: string) {
+  return did.split(":")[2];
+}
+
+/**
+ * Parses the model name (including owner name) from a DID model definition
+ */
 export function parseModelDID(did: string) {
   const parts = did.split(":").slice(2);
 

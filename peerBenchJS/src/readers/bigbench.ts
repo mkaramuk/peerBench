@@ -1,65 +1,70 @@
-import { AbstractTaskReader } from "@/base/task";
+import { AbstractTaskReader } from "@/base/taskreader";
 import { tryParseJson } from "@/core/parser";
-import {
-  MaybePromise,
-  Prompt,
-  Task,
-  EvaluationType,
-  EvaluationTypes,
-} from "@/types";
+import { checkValidationError, readFile } from "@/core/utils";
+import { InvalidTaskError, TaskNotRecognizedError } from "@/errors/task";
+import { MaybePromise, Prompt, Task, MetricType, MetricTypes } from "@/types";
+import { z } from "zod";
 
-export type BigBenchTask = {
-  canary: string;
-  name: string;
-  description: string;
-  keywords: string[];
-  metrics: string[];
-  preferred_score?: string;
-  output_regex?: string;
-};
+export const BigBenchTaskSchema = z.object({
+  canary: z.string(),
+  name: z.string(),
+  description: z.string(),
+  keywords: z.array(z.string()),
+  metrics: z.array(z.string()),
+  preferred_score: z.string(),
+  output_regex: z.string().optional(),
+  example_input_suffix: z.string().optional(),
+  example_input_prefix: z.string().optional(),
+  example_output_suffix: z.string().optional(),
+  example_output_prefix: z.string().optional(),
+  choice_prefix: z.string().optional(),
+  examples: z.array(
+    z.object({
+      id: z.coerce.number().optional(),
+      input: z.string(),
+      target: z.string().optional(),
+      target_scores: z.record(z.string(), z.coerce.number()),
+    })
+  ),
+});
+
+export type BigBenchTask = z.infer<typeof BigBenchTaskSchema>;
 
 export class BigBenchTaskReader extends AbstractTaskReader {
-  parse(content: string): MaybePromise<Task> {
-    const json = tryParseJson(content);
+  parseFromFile(path: string): MaybePromise<Task> {
+    const json = tryParseJson(readFile(path));
 
     if (json === undefined) {
-      throw new Error(`Invalid task`);
+      throw new InvalidTaskError();
     }
 
-    if (!this.recognize(json)) {
-      throw new Error("Task is not recognized");
+    const task = checkValidationError(BigBenchTaskSchema.safeParse(json));
+
+    if (!this.recognize(task)) {
+      throw new TaskNotRecognizedError();
     }
 
     const prompts: Prompt[] = [];
+    const metricTypes: MetricType[] = [];
 
-    const name: string = json?.name || "";
-    const inputSuffix: string | undefined = json?.example_input_suffix; // May not be available, check it again
-    const inputPrefix: string | undefined = json?.example_input_prefix;
-    const outputSuffix: string | undefined = json?.example_output_suffix; // May not be available, check it again
-    const outputPrefix: string | undefined = json?.example_output_prefix;
-    const outputRegex =
-      json?.output_regex !== undefined
-        ? new RegExp(json?.output_regex)
-        : undefined;
+    for (const metric of task.metrics) {
+      switch (metric) {
+        case "multiple_choice_grade":
+          metricTypes.push(MetricTypes.MultipleChoice);
+          break;
+        case "exact_str_match":
+          metricTypes.push(MetricTypes.ExactEquality);
+          break;
 
-    let evaluationType: EvaluationType;
-
-    switch (json?.preferred_score) {
-      case "multiple_choice_grade":
-        evaluationType = EvaluationTypes.MultipleChoice;
-        break;
-      case "exact_str_match":
-        evaluationType = EvaluationTypes.ExactEquality;
-        break;
-
-      default:
-        // TODO: Throw error?
-        evaluationType = EvaluationTypes.MultipleChoice;
-        break;
+        default:
+          // TODO: Check other metric types
+          metricTypes.push(MetricTypes.MultipleChoice);
+          break;
+      }
     }
 
     // Parse examples (aka prompts, tests)
-    for (const example of json?.examples || []) {
+    for (const example of task.examples || []) {
       prompts.push({
         id: example.id,
         input: example.input,
@@ -69,29 +74,25 @@ export class BigBenchTaskReader extends AbstractTaskReader {
     }
 
     return {
-      name,
-      inputPrefix,
-      inputSuffix,
-      outputSuffix,
-      outputPrefix,
-      outputRegex,
-      evaluationType: evaluationType!,
+      name: `bigbench-${task.name}`,
+      metricTypes: metricTypes,
       prompts,
+      inputPrefix: task.example_input_prefix,
+      inputSuffix: task.example_input_suffix,
+      outputSuffix: task.example_output_suffix,
+      outputPrefix: task.example_output_prefix,
     };
   }
 
-  recognize(content: any): MaybePromise<boolean> {
+  recognize(content: BigBenchTask): MaybePromise<boolean> {
     if (typeof content !== "object") {
       return false;
     }
 
-    if (
-      typeof content.canary === "string" &&
-      content.canary.startsWith("BENCHMARK DATA SHOULD NEVER")
-    ) {
+    if (content.canary.startsWith("BENCHMARK DATA SHOULD NEVER")) {
       return true;
     }
 
-    return true;
+    return false;
   }
 }

@@ -1,0 +1,142 @@
+[
+  {
+    "promptData": "Which of the following was a defining feature of the Harappan (Indus Valley) urban planning?\n\nA: pyramidal temples.\nB: grid-pattern street layout.\nC: ziggurats.\nD: centralized monarchy.\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "Which material was central to the 'Metallurgical Revolution' during the early Bronze Age?\n\nA: tin.\nB: iron.\nC: silver.\nD: copper.\n",
+    "correctResponse": "A"
+  },
+  {
+    "promptData": "Çatalhöyük is significant in archaeological studies because it:\n\nA: shows early evidence of state formation.\nB: is one of the earliest known agricultural villages.\nC: has the first known system of written laws.\nD: was built entirely underground.\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "Which of the following developments most directly contributed to the rise of sedentary agricultural communities?\n\nA: advanced tool-making.\nB: language development.\nC: domestication of plants and animals.\nD: development of writing.\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "The earliest known evidence for long-distance trade in obsidian comes from sites in:\n\nA: Mesopotamia.\nB: Central Anatolia.\nC: the Indus Valley.\nD: the Nile Delta.\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "Which of the following was *not* a characteristic of Sumerian civilization?\n\nA: cuneiform writing.\nB: theocratic government.\nC: pyramid construction.\nD: irrigation agriculture.\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "The Lapita cultural complex is best known for its:\n\nA: cave paintings.\nB: megalithic tombs.\nC: pottery and navigation.\nD: domestication of llamas.\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "The Hittites are historically significant for being among the first to:\n\nA: develop democracy.\nB: construct aqueducts.\nC: use iron extensively.\nD: build ziggurats.\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "Which site provides the earliest unequivocal evidence for symbolic behavior in Homo sapiens?\n\nA: Blombos Cave.\nB: Göbekli Tepe.\nC: Monte Verde.\nD: Lascaux Cave.\n",
+    "correctResponse": "A"
+  },
+  {
+    "promptData": "The most important crop domesticated in the Fertile Crescent was:\n\nA: maize.\nB: wheat.\nC: rice.\nD: millet.\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "Which of the following regions was *last* to experience Neolithic agricultural practices?\n\nA: East Asia.\nB: Mesoamerica.\nC: Europe.\nD: Sub-Saharan Africa.\n",
+    "correctResponse": "D"
+  },
+  {
+    "promptData": "Which early culture is credited with developing the earliest known writing system?\n\nA: Shang.\nB: Harappan.\nC: Olmec.\nD: Sumerian.\n",
+    "correctResponse": "D"
+  },
+  {
+    "promptData": "Which of the following animals was *not* domesticated in the Old World before 3000 BCE?\n\nA: sheep.\nB: horses.\nC: llamas.\nD: goats.\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "The Varna culture in prehistoric Bulgaria is best known for early evidence of:\n\nA: iron metallurgy.\nB: agriculture.\nC: gold working.\nD: horse domestication.\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "The earliest permanent human settlement in North America has been found at:\n\nA: Cahokia.\nB: Meadowcroft Rockshelter.\nC: Mesa Verde.\nD: Clovis.\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "Which ancient civilization is associated with the invention of the 365-day calendar?\n\nA: Mesopotamian\nB: Egyptian\nC: Minoan\nD: Shang\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "The Neolithic site of Banpo in China is notable for evidence of:\n\nA: bronze weaponry.\nB: hunting megafauna.\nC: early painted pottery.\nD: ziggurat construction.\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "The term 'Natufian' refers to:\n\nA: a Paleolithic cave site in France.\nB: a Mesolithic culture in the Levant.\nC: a Neolithic trading hub in Anatolia.\nD: an early Bronze Age culture in Mesopotamia.\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "Which of the following best describes the architectural layout of Göbekli Tepe?\n\nA: stepped pyramids.\nB: circular enclosures with T-shaped pillars.\nC: grid-aligned stone huts.\nD: underground burial chambers.\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "The term 'megalithic' refers to structures built primarily from:\n\nA: baked clay bricks.\nB: thatched reeds.\nC: large stones.\nD: cut timber.\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "The earliest known urban society in the Americas developed in:\n\nA: Mesoamerica.\nB: the Amazon Basin.\nC: the Andes.\nD: the Mississippi Valley.\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "Which of the following was the primary staple crop of the ancient Andean civilizations?\n\nA: maize\nB: quinoa\nC: wheat\nD: millet\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "The domestication of the horse is most strongly associated with:\n\nA: the Levant.\nB: Central Asia.\nC: the Indus Valley.\nD: Northern Europe.\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "The Clovis culture is most widely identified by its:\n\nA: bone jewelry.\nB: fluted projectile points.\nC: burial mounds.\nD: cave art.\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "Which archaeological feature is most closely associated with the Mississippian culture?\n\nA: step pyramids\nB: kivas\nC: effigy mounds\nD: platform mounds\n",
+    "correctResponse": "D"
+  },
+  {
+    "promptData": "Which of the following technologies first appears during the Upper Paleolithic?\n\nA: pottery.\nB: bronze smelting.\nC: composite tools.\nD: irrigation systems.\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "Which civilization developed quipu as a form of record-keeping?\n\nA: Olmec\nB: Inca\nC: Maya\nD: Zapotec\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "Which hominin species is most directly associated with the Mousterian tool tradition?\n\nA: Homo erectus\nB: Homo sapiens sapiens\nC: Homo habilis\nD: Neanderthals\n",
+    "correctResponse": "D"
+  },
+  {
+    "promptData": "The domestication of rice occurred earliest in:\n\nA: Mesopotamia.\nB: the Yangtze River basin.\nC: the Ganges Delta.\nD: the Mekong Delta.\n",
+    "correctResponse": "B"
+  },
+  {
+    "promptData": "Which of the following cultures constructed the Great Zimbabwe complex?\n\nA: Nok\nB: Swahili\nC: Bantu\nD: Shona\n",
+    "correctResponse": "D"
+  },
+  {
+    "promptData": "The earliest known use of controlled fire is associated with which hominin?\n\nA: Homo habilis\nB: Homo sapiens\nC: Australopithecus afarensis\nD: Homo erectus\n",
+    "correctResponse": "D"
+  },
+  {
+    "promptData": "Which site is considered one of the earliest examples of monumental architecture in the Americas?\n\nA: Caral\nB: Tikal\nC: La Venta\nD: Chavín de Huántar\n",
+    "correctResponse": "A"
+  },
+  {
+    "promptData": "Which of the following is considered a 'secondary product' of animal domestication?\n\nA: meat\nB: hide\nC: milk\nD: bone\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "Which region provides the earliest evidence of wheeled transportation?\n\nA: Indus Valley\nB: Central Europe\nC: Mesopotamia\nD: Anatolia\n",
+    "correctResponse": "C"
+  },
+  {
+    "promptData": "The 'Neolithic Revolution' refers to:\n\nA: the rise of metallurgy.\nB: the creation of fire-starting tools.\nC: the transition to agriculture and settled life.\nD: the invention of writing.\n",
+    "correctResponse": "C"
+  }
+]

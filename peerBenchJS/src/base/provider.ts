@@ -12,6 +12,8 @@ export abstract class AbstractProvider {
 
   logger: winston.Logger;
   apiKey: string;
+  rateLimit: number;
+  rateLimitTimeWindow: number;
 
   /**
    * Initialize a new Provider
@@ -28,11 +30,17 @@ export abstract class AbstractProvider {
     try {
       const capitalizedName = options.name.replace(".", "_").toUpperCase();
       const apiKeyEnvName = `PB_${capitalizedName}_KEY`;
+      const rateLimitEnvName = `PB_${capitalizedName}_RATE_LIMIT`;
+      const rateLimitTimeWindowEnvName = `PB_${capitalizedName}_RATE_LIMIT_TIME_WINDOW`;
       const env = parseEnvVariables({
         [apiKeyEnvName]: z.string().nonempty(),
+        [rateLimitEnvName]: z.coerce.number().default(20),
+        [rateLimitTimeWindowEnvName]: z.coerce.number().default(3000),
       });
 
-      this.apiKey = env[apiKeyEnvName]!;
+      this.apiKey = env[apiKeyEnvName]! as string;
+      this.rateLimit = env[rateLimitEnvName]! as number;
+      this.rateLimitTimeWindow = env[rateLimitTimeWindowEnvName]! as number;
 
       this.logger = logger.child({
         context: `Provider(${this.name})`,
@@ -55,5 +63,9 @@ export abstract class AbstractProvider {
    * Executes the given prompt and returns the response
    * @param prompt
    */
-  abstract forward(prompt: string, model: string): Promise<ModelResponse>;
+  abstract forward(
+    prompt: string,
+    model: string,
+    system: string
+  ): Promise<ModelResponse>;
 }

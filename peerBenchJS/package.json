@@ -22,17 +22,20 @@
   "main": "dist/index.js",
   "scripts": {
     "lint": "tsc && eslint",
-    "dev": "tsup --sourcemap --silent --onSuccess 'tsc-alias -p tsconfig.json -f && node dist/index.js'",
+    "dev": "tsx src/index.ts",
     "watch": "tsup --silent --watch --onSuccess 'tsc-alias -p tsconfig.json -f && node dist/index.js'",
     "start": "node dist/index.js",
     "build": "tsup --onSuccess 'tsc-alias -p tsconfig.json -f'",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "clean:outputs": "rm -rf data/output/*"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.39.1",
+    "@inquirer/prompts": "^7.4.1",
     "ansis": "^3.17.0",
     "commander": "^13.1.0",
     "csv": "^6.3.11",
+    "hyparquet": "^1.11.0",
     "multiformats": "^13.3.2",
     "openai": "^4.92.1",
     "table": "^6.9.0",

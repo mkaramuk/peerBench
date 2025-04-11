@@ -2,18 +2,16 @@ import { PromptScore } from "@/types";
 import { parseModelDID, parseProviderDID, tryParseJson } from "./parser";
 import { readableTime, readFile } from "./utils";
 import { logger } from "./logger";
-import { blue, cyan, green, magenta, yellow } from "ansis";
+import { blue, cyan, green, magenta, red, yellow } from "ansis";
 import { table as formatTable } from "table";
 
-export async function aggregate(
-  scoreFilePaths: string[],
-  sortType: AggregationSortType
-) {
+export async function aggregate(scoreFilePaths: string[], dataset: string) {
   const scores = scoreFilePaths
     .map((path) => {
       try {
         const content = readFile(path);
         // TODO: Also validate the data with a Zod schema
+        // TODO: Make it possible to read CSV files
         return tryParseJson<PromptScore[]>(content);
       } catch (err) {
         logger.warning(`Score file ${path} couldn't read: ${err}`);
@@ -24,7 +22,7 @@ export async function aggregate(
 
   const results: Record<
     string,
-    { score: number; latency: number; response: number }
+    { score: number; latency: number; response: number; wrongAnswers: number }
   > = {};
 
   for (const score of scores) {
@@ -33,12 +31,16 @@ export async function aggregate(
     const key = `${providerName}:${model}`;
 
     if (!results[key]) {
-      results[key] = { score: 0, latency: 0, response: 0 };
+      results[key] = { score: 0, latency: 0, response: 0, wrongAnswers: 0 };
     }
 
     results[key].score += score.score;
     results[key].latency += score.repliedAt - score.promptedAt;
     results[key].response++;
+
+    if (score.score === 0) {
+      results[key].wrongAnswers++;
+    }
   }
 
   const data: any[] = [];
@@ -48,26 +50,39 @@ export async function aggregate(
       providerAndModel,
       values.response,
       values.score,
+      values.wrongAnswers,
       readableTime(values.latency / values.response / 1000),
       (values.score / values.response).toFixed(2),
     ]);
   }
 
-  switch (sortType) {
-    case AggregationSortTypes.TotalResponses:
-      data.sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]));
-      break;
-    case AggregationSortTypes.TotalScore:
-      data.sort((a, b) => parseFloat(b[2]) - parseFloat(a[2]));
-      break;
-    case AggregationSortTypes.AverageLatency:
-      data.sort((a, b) => parseFloat(a[3]) - parseFloat(b[3]));
-      break;
-    case AggregationSortTypes.AverageScore:
-      data.sort((a, b) => parseFloat(b[4]) - parseFloat(a[4]));
-      break;
-  }
+  data.sort((a, b) => {
+    const aTotalResponse = parseFloat(a[1]);
+    const bTotalResponse = parseFloat(b[1]);
 
+    const aTotalScore = parseFloat(a[2]);
+    const bTotalScore = parseFloat(b[2]);
+
+    const aAverageLatency = parseFloat(a[4]);
+    const bAverageLatency = parseFloat(b[4]);
+
+    const aAverageScore = parseFloat(a[5]);
+    const bAverageScore = parseFloat(b[5]);
+
+    if (aTotalScore !== bTotalScore) {
+      return bTotalScore - aTotalScore;
+    }
+    if (aAverageLatency !== bAverageLatency) {
+      return aAverageLatency - bAverageLatency;
+    }
+    if (aAverageScore !== bAverageScore) {
+      return aAverageScore - bAverageScore;
+    }
+
+    return bTotalResponse - aTotalResponse;
+  });
+
+  console.log("Dataset:", dataset);
   console.log(
     formatTable(
       [
@@ -76,6 +91,7 @@ export async function aggregate(
           "Provider:Model",
           "Total Responses",
           "Total Score",
+          "Wrong Answers",
           "Avg. Latency",
           "Avg. Score",
         ],
@@ -84,8 +100,9 @@ export async function aggregate(
           magenta.bold(row[0]),
           green.bold(row[1]),
           yellow.bold(row[2]),
-          blue.bold(row[3]),
-          yellow(row[4]),
+          red.bold(row[3]),
+          blue.bold(row[4]),
+          yellow(row[5]),
         ]),
       ],
       {
@@ -112,14 +129,6 @@ export async function aggregate(
       }
     )
   );
+
+  return results;
 }
-
-export const AggregationSortTypes = {
-  TotalScore: "TotalScore",
-  TotalResponses: "TotalResponses",
-  AverageScore: "AverageScore",
-  AverageLatency: "AverageLatency",
-} as const;
-
-export type AggregationSortType =
-  (typeof AggregationSortTypes)[keyof typeof AggregationSortTypes];
