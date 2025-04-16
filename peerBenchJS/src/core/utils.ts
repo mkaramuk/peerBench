@@ -72,10 +72,9 @@ export function checkValidationError<T, K>(
   return safeParseReturn.data;
 }
 
-export async function signFile(filePath: string) {
-  const content = readFile(filePath);
+export async function signFile(filePath: string, hash: string) {
   const signature = await config.VALIDATOR_ACCOUNT.signMessage({
-    message: content,
+    message: hash,
   });
 
   writeFileSync(`${filePath}.signature`, signature, {
@@ -90,6 +89,8 @@ export async function hashFile(filePath: string) {
   writeFileSync(`${filePath}.cid`, cid.toString(), {
     encoding: "utf-8",
   });
+
+  return cid.toString();
 }
 
 export function randomInteger(min: number, max: number) {

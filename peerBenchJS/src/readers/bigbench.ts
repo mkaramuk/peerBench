@@ -2,7 +2,7 @@ import { AbstractTaskReader } from "@/base/taskreader";
 import { tryParseJson } from "@/core/parser";
 import { checkValidationError, readFile } from "@/core/utils";
 import { InvalidTaskError, TaskNotRecognizedError } from "@/errors/task";
-import { MaybePromise, Prompt, Task, MetricType, MetricTypes } from "@/types";
+import { MaybePromise, Prompt, Task, EvalType, EvalTypes } from "@/types";
 import { z } from "zod";
 
 export const BigBenchTaskSchema = z.object({
@@ -45,42 +45,46 @@ export class BigBenchTaskReader extends AbstractTaskReader {
     }
 
     const prompts: Prompt[] = [];
-    const metricTypes: MetricType[] = [];
+    const evalTypes: EvalType[] = [];
 
     for (const metric of task.metrics) {
       switch (metric) {
         case "multiple_choice_grade":
-          metricTypes.push(MetricTypes.MultipleChoice);
+          evalTypes.push(EvalTypes.MultipleChoice);
           break;
         case "exact_str_match":
-          metricTypes.push(MetricTypes.ExactEquality);
+          evalTypes.push(EvalTypes.ExactEquality);
           break;
 
         default:
           // TODO: Check other metric types
-          metricTypes.push(MetricTypes.MultipleChoice);
           break;
       }
     }
 
     // Parse examples (aka prompts, tests)
     for (const example of task.examples || []) {
+      let data = example.input;
+
+      if (task.example_input_prefix) {
+        data = `${task.example_input_prefix}${data}`;
+      }
+      if (task.example_input_suffix) {
+        data = `${data}${task.example_input_suffix}`;
+      }
+
       prompts.push({
         id: example.id,
-        input: example.input,
+        data: example.input,
         answers: example.target_scores,
-        expectedAnswer: example.target,
+        correctResponse: example.target,
+        evalTypes,
       });
     }
 
     return {
-      name: `bigbench-${task.name}`,
-      metricTypes: metricTypes,
+      did: `did:task:bigbench/${task.name}`,
       prompts,
-      inputPrefix: task.example_input_prefix,
-      inputSuffix: task.example_input_suffix,
-      outputSuffix: task.example_output_suffix,
-      outputPrefix: task.example_output_prefix,
     };
   }
 

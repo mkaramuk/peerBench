@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { logger } from "./logger";
-import { providers } from "./providers";
 
 /**
  * Tries to parse the given string as JSON.
@@ -15,37 +14,22 @@ export function tryParseJson<T = any>(content: string): T | undefined {
 }
 
 /**
- * Parses a provider and model identifier which follows up the pattern below:
- * <provider name>:<model owner>/<model name>
- * @returns Provider name, model name (combined model name and owner) and instance of provider implementation
+ * Parses provider and model config which follow the pattern below:
+ * <provider name>:<model identifier (depends on the provider)>
+ * @returns Provider name and model identifier
  */
-export function parseIdentifier(identifier: string) {
-  const parts = identifier.split(":");
-  const providerName = parts[0];
-  let model = "";
-
-  // If the model name includes ":" we need to join the string together with ":" character
-  if (parts.length > 2) {
-    model = parts.slice(1).join(":");
-  } else {
-    model = parts.slice(1).join("");
-  }
-
-  if (providerName === undefined || model === undefined) {
-    logger.warning(`Invalid identifier: ${identifier}`);
+export function parseProviderConfig(identifier: string) {
+  const regex = /^([^:]+):(.+)$/;
+  const match = identifier.match(regex);
+  if (!match) {
+    logger.warning(`Invalid provider config: ${identifier}`);
     return;
   }
 
-  const provider = providers.find((p) => p.name === providerName);
-  if (provider === undefined) {
-    logger.warning(`Provider not found: ${provider}`);
-    return;
-  }
-
+  const [, name, modelIdentifier] = match;
   return {
-    name: providerName,
-    model,
-    provider,
+    providerName: name,
+    modelIdentifier,
   };
 }
 
@@ -95,9 +79,9 @@ export function parseProviderDID(did: string) {
 }
 
 /**
- * Parses evaluation name from a DID definition (yes it is the same thing as `parseProviderDID`)
+ * Parses task name from a DID definition (yes it is the same thing as `parseProviderDID`)
  */
-export function parseEvaluationDID(did: string) {
+export function parseTaskDID(did: string) {
   return did.split(":")[2];
 }
 

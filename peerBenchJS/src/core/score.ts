@@ -1,9 +1,4 @@
-import {
-  MetricTypes,
-  MaybePromise,
-  PromptResponse,
-  PromptScore,
-} from "@/types";
+import { MaybePromise, PromptResponse, PromptScore } from "@/types";
 import { readFile } from "./utils";
 
 export async function score(
@@ -29,7 +24,7 @@ export async function score(
     if (scorer) {
       score = await scorer(promptResponse);
     } else {
-      // TODO: Later we need to include the "scoring way" in the response schema. For now, it checks the exact equality and looks for some patterns
+      // TODO: Use different answer check approaches by using `promptResponse.evalType`
       if (promptResponse.responseData === promptResponse.correctResponse) {
         score = 1;
       } else {
@@ -53,7 +48,6 @@ export async function score(
 
     scores.push({
       ...promptResponse,
-      evaluationDID: `did:eval:${MetricTypes.MultipleChoice}`, // TODO: Later use from the prompt response (so store it in there as well)
       score,
     });
   }

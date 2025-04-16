@@ -4,8 +4,10 @@ import { config } from "@/config";
 import { AbstractProvider } from "@/base/provider";
 import { MaybePromise, Prompt, PromptResponse, Task } from "@/types";
 import { v7 as uuidv7 } from "uuid";
-import { parseIdentifier } from "./parser";
+import { parseProviderConfig } from "./parser";
 import { logger } from "./logger";
+import { blue, yellow } from "ansis";
+import { getProvider } from "./providers";
 
 /**
  * Sends the prompts from the given task files to the given Providers and
@@ -51,10 +53,17 @@ export async function prompt(
   for (const task of tasks) {
     const evaluationRunId = uuidv7(); // New evaluation ID per given task
 
-    logger.debug(`Found ${task.prompts.length} prompt in ${task.name}`);
+    logger.debug(
+      `Found ${task.prompts.length} prompt in ${yellow.bold(task.did)}`
+    );
     for (const identifier of identifiers) {
-      const info = parseIdentifier(identifier);
+      const info = parseProviderConfig(identifier);
       if (info === undefined) {
+        continue;
+      }
+
+      const provider = getProvider(info.providerName);
+      if (provider === undefined) {
         continue;
       }
 
@@ -62,23 +71,28 @@ export async function prompt(
         task.prompts = task.prompts.slice(0, options.maxPrompt);
       }
 
-      const { provider, model } = info;
       promises.push(
-        execPrompts(provider, task, model, evaluationRunId, (response) => {
-          responseCount++;
-          logger.info(
-            `${responseCount} prompt done, ${
-              totalPromptCount - responseCount
-            } prompt left`
-          );
-          options?.onResponseReceived?.(response);
-        })
+        execPrompts(
+          provider,
+          task,
+          info.modelIdentifier,
+          evaluationRunId,
+          (response) => {
+            responseCount++;
+            logger.info(
+              `${responseCount} prompt done, ${
+                totalPromptCount - responseCount
+              } prompt left`
+            );
+            options?.onResponseReceived?.(response);
+          }
+        )
       );
     }
   }
 
   await Promise.all(promises);
-  logger.info(`Prompt done`);
+  logger.info(`Prompt phase is done`);
 }
 
 async function execPrompt(
@@ -87,23 +101,17 @@ async function execPrompt(
   provider: AbstractProvider,
   prompt: Prompt,
   model: string,
-  evaluationRunId: string
+  runId: string
 ) {
   const providerLogger = provider.logger.child({
     context: `Provider(${provider.name}:${model})`,
   });
-  const promptIdentifier = `${promptNumber} from "${task.name}"`;
+  const promptIdentifier = `${promptNumber} from ${yellow.bold(task.did)}`;
   try {
-    let input = prompt.input;
-    let correctResponse = prompt.expectedAnswer || "";
+    let input = prompt.data;
+    let correctResponse = prompt.correctResponse || "";
 
-    if (task.inputPrefix) {
-      input = `${task.inputPrefix}${input}`;
-    }
-    if (task.inputSuffix) {
-      input = `${input}${task.inputSuffix}`;
-    }
-
+    // Append answers to the input
     if (prompt.answers !== undefined) {
       input += "\n\n";
       let letterIndex = 0;
@@ -121,36 +129,30 @@ async function execPrompt(
     const result = await provider.forward(
       input,
       model,
-      task.systemPrompt || // Use the given prompt by the task if there is any
-        "You are an knowledge expert, you are supposed to answer the multi-choice question to derive your final answer that is chosen from the given answers. You always give the letter of your choice in your reply without any additional text, explanation or reasoning. Don't repeat yourself"
+      // TODO: Change prompt based on the evaluation type
+      "You are an knowledge expert, you are supposed to answer the multi-choice question to derive your final answer as `The answer is ...` without any other additional text or explanation."
     );
     const elapsedSeconds =
       (result.completedAt.getTime() - result.startedAt.getTime()) / 1000;
-
-    let response = result.response.trim();
-
-    if (task.outputPrefix) {
-      response = `${task.outputPrefix}${result.response}`;
-    }
-    if (task.outputSuffix) {
-      response = `${result.response}${task.outputSuffix}`;
-    }
+    const response = result.response.trim();
 
     providerLogger.debug(`Result of prompt ${promptIdentifier}: ${response}`);
     providerLogger.info(
-      `Prompt ${promptIdentifier} is completed in ${readableTime(
-        elapsedSeconds
+      `Prompt ${promptIdentifier} is completed in ${blue.bold(
+        readableTime(elapsedSeconds)
       )}`
     );
 
     const promptCID = (await generateCID(input)).toString();
     const responseCID = (await generateCID(response)).toString();
     const promptResponse: PromptResponse = {
-      modelDID: `did:pb:${model}`,
+      modelDID: `did:model:${model}`,
       validatorDID: config.VALIDATOR_DID,
       providerDID: provider.did,
+      taskDID: task.did,
 
-      evaluationRunId,
+      evalTypes: prompt.evalTypes,
+      runId,
 
       correctResponse,
       promptCID,
@@ -161,8 +163,6 @@ async function execPrompt(
 
       promptedAt: result.startedAt.getTime(),
       repliedAt: result.completedAt.getTime(),
-
-      evaluationDID: `did:eval:${task.name}`,
     };
     return promptResponse;
   } catch (err) {

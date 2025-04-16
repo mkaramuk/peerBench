@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export const NodeEnvs = ["dev", "production"] as const;
 export type NodeEnv = (typeof NodeEnvs)[number];
 
@@ -12,58 +14,57 @@ export type ModelResponse = {
   response: string;
 };
 
-export type Prompt = {
-  id?: number | string;
-  input: string;
-  expectedAnswer?: string;
-  answers?: Record<string, number>;
-};
-
-export type PromptResponse = {
-  validatorDID: string;
-  providerDID: string;
-  modelDID: string;
-
-  promptCID: string;
-  responseCID: string;
-
-  promptData: string;
-  responseData: string;
-  correctResponse: string;
-
-  promptedAt: number;
-  repliedAt: number;
-
-  evaluationRunId: string;
-
-  evaluationDID: string;
-};
-
-export type PromptScore = Omit<
-  PromptResponse,
-  "promptData" | "responseData" | "correctResponse"
-> & {
-  promptData?: string;
-  responseData?: string;
-  correctResponse?: string;
-
-  evaluationDID: string;
-  score: number;
-};
-
-export const MetricTypes = {
+export const EvalTypes = {
   ExactEquality: "exact-equality",
   MultipleChoice: "multiple-choice",
 } as const;
-export type MetricType = (typeof MetricTypes)[keyof typeof MetricTypes];
+export type EvalType = (typeof EvalTypes)[keyof typeof EvalTypes];
 
-export type Task = {
-  name: string;
-  inputPrefix?: string;
-  inputSuffix?: string;
-  outputPrefix?: string;
-  outputSuffix?: string;
-  metricTypes: MetricType[];
-  prompts: Prompt[];
-  systemPrompt?: string;
-};
+export const PromptSchema = z.object({
+  id: z.union([z.string(), z.number()]).optional(),
+  data: z.string(),
+  answers: z.record(z.string(), z.number()).optional(),
+  correctResponse: z.string().optional(),
+  evalTypes: z.array(
+    z.enum(Object.values(EvalTypes) as [EvalType, ...EvalType[]])
+  ),
+});
+export type Prompt = z.infer<typeof PromptSchema>;
+
+export const TaskSchema = z.object({
+  did: z.string().startsWith("did:task:"),
+  prompts: z.array(PromptSchema),
+});
+export type Task = z.infer<typeof TaskSchema>;
+
+export const PromptResponseSchema = z.object({
+  validatorDID: z.string().startsWith("did:val:"),
+  providerDID: z.string().startsWith("did:prov:"),
+  modelDID: z.string().startsWith("did:model:"),
+  taskDID: z.string().startsWith("did:task:"),
+  evalTypes: z.array(
+    z.enum(Object.values(EvalTypes) as [EvalType, ...EvalType[]])
+  ),
+  promptCID: z.string(),
+  responseCID: z.string(),
+
+  promptData: z.string(),
+  responseData: z.string(),
+  correctResponse: z.string(),
+
+  promptedAt: z.number(),
+  repliedAt: z.number(),
+
+  runId: z.string(),
+});
+
+export type PromptResponse = z.infer<typeof PromptResponseSchema>;
+
+export const PromptScoreSchema = PromptResponseSchema.extend({
+  promptData: z.string().optional(),
+  responseData: z.string().optional(),
+  correctResponse: z.string().optional(),
+
+  score: z.number(),
+});
+export type PromptScore = z.infer<typeof PromptScoreSchema>;

@@ -5,7 +5,7 @@ import { logger } from "./logger";
 import { blue, cyan, green, magenta, red, yellow } from "ansis";
 import { table as formatTable } from "table";
 
-export async function aggregate(scoreFilePaths: string[], dataset: string) {
+export async function aggregate(scoreFilePaths: string[], taskName: string) {
   const scores = scoreFilePaths
     .map((path) => {
       try {
@@ -69,20 +69,24 @@ export async function aggregate(scoreFilePaths: string[], dataset: string) {
     const aAverageScore = parseFloat(a[5]);
     const bAverageScore = parseFloat(b[5]);
 
-    if (aTotalScore !== bTotalScore) {
-      return bTotalScore - aTotalScore;
-    }
-    if (aAverageLatency !== bAverageLatency) {
-      return aAverageLatency - bAverageLatency;
-    }
-    if (aAverageScore !== bAverageScore) {
-      return aAverageScore - bAverageScore;
+    const order = [
+      [bTotalScore, aTotalScore],
+      [aAverageScore, bAverageScore],
+      [aAverageLatency, bAverageLatency],
+      [bTotalResponse, aTotalResponse],
+    ];
+
+    for (const values of order) {
+      if (values[0] !== values[1]) {
+        return values[0] - values[1];
+      }
     }
 
-    return bTotalResponse - aTotalResponse;
+    const lastOrderColumn = order[order.length - 1];
+    return lastOrderColumn[0] - lastOrderColumn[1];
   });
 
-  console.log("Dataset:", dataset);
+  console.log("Task:", taskName);
   console.log(
     formatTable(
       [

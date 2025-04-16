@@ -2,7 +2,7 @@ import { AbstractTaskReader } from "@/base/taskreader";
 import { parseJSONL, tryParseJson } from "@/core/parser";
 import { checkValidationError, readFile } from "@/core/utils";
 import { InvalidTaskError, TaskNotRecognizedError } from "@/errors/task";
-import { MaybePromise, Prompt, Task, MetricTypes } from "@/types";
+import { EvalTypes, MaybePromise, Prompt, Task } from "@/types";
 import { asyncBufferFromFile, parquetReadObjects } from "hyparquet";
 import { z } from "zod";
 
@@ -36,15 +36,15 @@ export class CustomTaskReader extends AbstractTaskReader {
       const answers: Record<string, number> = {};
 
       prompts.push({
-        input: prompt.promptData,
+        data: prompt.promptData,
         answers,
-        expectedAnswer: prompt.correctResponse,
+        evalTypes: [EvalTypes.MultipleChoice],
+        correctResponse: prompt.correctResponse,
       });
     }
 
     return {
-      name: "", // Use the filename (without extension)
-      metricTypes: [MetricTypes.MultipleChoice],
+      did: "did:task:", // Leave task name empty so the file name will be used
       prompts,
     };
   }

@@ -2,7 +2,7 @@ import { AbstractTaskReader } from "@/base/taskreader";
 import { parseJSONL, tryParseJson } from "@/core/parser";
 import { checkValidationError, readFile } from "@/core/utils";
 import { InvalidTaskError, TaskNotRecognizedError } from "@/errors/task";
-import { MaybePromise, Prompt, Task, MetricTypes } from "@/types";
+import { MaybePromise, Prompt, Task, EvalTypes } from "@/types";
 import { asyncBufferFromFile, parquetReadObjects } from "hyparquet";
 import { z } from "zod";
 
@@ -66,27 +66,25 @@ export class MMLUProTaskReader extends AbstractTaskReader {
 
       prompts.push({
         id: prompt.question_id,
-        input: prompt.question,
+        data: prompt.question,
         answers,
-        expectedAnswer: prompt.answer,
+        correctResponse: prompt.answer,
+        evalTypes: [EvalTypes.MultipleChoice],
       });
       categories.add(prompt.category);
     }
 
-    let name = "mmlu-pro";
+    let did = "did:task:mmlu-pro";
 
     // Not the all categories are presented so update
-    // the name according to the found categories
+    // the DID according to the found categories
     if (categories.size != 14) {
-      name += `-${[...categories].join("-")}`;
+      did += `/${[...categories].join("/")}`;
     }
 
     return {
-      name,
-      metricTypes: [MetricTypes.MultipleChoice], // MMLU-PRO only has multiple choice prompts
+      did,
       prompts,
-      systemPrompt:
-        "You are an knowledge expert, you are supposed to answer the multi-choice question to derive your final answer as `The answer is ...` without any other additional text or explanation.",
     };
   }
 

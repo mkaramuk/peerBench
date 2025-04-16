@@ -1,19 +1,19 @@
 import { parseEnvVariables } from "@/config";
 import { logger } from "@/core/logger";
-import { ModelResponse } from "@/types";
+import { MaybePromise, ModelResponse } from "@/types";
 import winston from "winston";
 import { z } from "zod";
 
 /**
  * Base class for Providers
  */
-export abstract class AbstractProvider {
+export abstract class AbstractProvider<
+  T extends Record<string, z.ZodTypeAny> = Record<string, z.ZodTypeAny>
+> {
   readonly name: string;
 
   logger: winston.Logger;
-  apiKey: string;
-  rateLimit: number;
-  rateLimitTimeWindow: number;
+  env: { [K in keyof T]: z.infer<T[K]> };
 
   /**
    * Initialize a new Provider
@@ -24,23 +24,32 @@ export abstract class AbstractProvider {
      * Name of the provider
      */
     name: string;
+
+    env?: T;
   }) {
     this.name = options.name;
+    this.env = {} as T;
 
     try {
       const capitalizedName = options.name.replace(".", "_").toUpperCase();
-      const apiKeyEnvName = `PB_${capitalizedName}_KEY`;
-      const rateLimitEnvName = `PB_${capitalizedName}_RATE_LIMIT`;
-      const rateLimitTimeWindowEnvName = `PB_${capitalizedName}_RATE_LIMIT_TIME_WINDOW`;
-      const env = parseEnvVariables({
-        [apiKeyEnvName]: z.string().nonempty(),
-        [rateLimitEnvName]: z.coerce.number().default(20),
-        [rateLimitTimeWindowEnvName]: z.coerce.number().default(3000),
-      });
 
-      this.apiKey = env[apiKeyEnvName]! as string;
-      this.rateLimit = env[rateLimitEnvName]! as number;
-      this.rateLimitTimeWindow = env[rateLimitTimeWindowEnvName]! as number;
+      if (options.env !== undefined) {
+        const env: Record<string, z.ZodTypeAny> = {};
+        const originalKeys: Record<string, keyof T> = {};
+
+        for (const [key, schema] of Object.entries(options.env)) {
+          const envKey = `PB_${capitalizedName}_${key}`;
+
+          originalKeys[envKey] = key;
+          env[envKey] = schema;
+        }
+
+        const parsedEnv = parseEnvVariables(env);
+
+        for (const [key, value] of Object.entries(parsedEnv)) {
+          this.env[originalKeys[key] as keyof T] = value;
+        }
+      }
 
       this.logger = logger.child({
         context: `Provider(${this.name})`,
@@ -56,7 +65,7 @@ export abstract class AbstractProvider {
    * Decentralized identifier of the Provider
    */
   get did() {
-    return `did:pb:${this.name.toLowerCase()}`;
+    return `did:prov:${this.name.toLowerCase()}`;
   }
 
   /**
@@ -68,4 +77,10 @@ export abstract class AbstractProvider {
     model: string,
     system: string
   ): Promise<ModelResponse>;
+
+  abstract parseModelIdentifier(identifier: string): MaybePromise<{
+    modelName: string;
+    modelOwner: string;
+    subProvider?: string;
+  }>;
 }

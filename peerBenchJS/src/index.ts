@@ -16,7 +16,8 @@ import {
 import { aggregate } from "./core/aggregate";
 import { Command } from "commander";
 import { z } from "zod";
-import { parseEvaluationDID, parseModelDID } from "./core/parser";
+import { parseTaskDID, parseModelDID, parseProviderDID } from "./core/parser";
+import { getProvider } from "./core/providers";
 
 const ConfigSchema = z.object({
   tasks: z.array(z.string()),
@@ -24,10 +25,6 @@ const ConfigSchema = z.object({
 });
 
 const program = new Command("peerbench")
-  .option(
-    "-n, --task <name>",
-    "Task identifier name that is going to be used to find the correct files or place outputs."
-  )
   .allowUnknownOption(true)
   .configureHelp({
     showGlobalOptions: true,
@@ -66,33 +63,39 @@ program
       );
 
       const startedAt = Date.now().toString();
-      const taskName = program.opts().task || "default";
       const commandConfig = checkValidationError(
         ConfigSchema.safeParse(JSON.parse(readFile(options.config)))
       );
 
       const allResponses: Record<string, PromptResponse[]> = {};
-      const findResponseSavePath = (res: PromptResponse) =>
-        join(
-          parseEvaluationDID(res.evaluationDID),
-          config.VALIDATOR_ADDRESS,
+      const findResponseSavePath = async (res: PromptResponse) => {
+        const provider = getProvider(parseProviderDID(res.providerDID))!;
+        const model = await provider.parseModelIdentifier(
           parseModelDID(res.modelDID)
         );
 
+        // TODO: include provider name into the path
+        return join(
+          parseTaskDID(res.taskDID).replace("/", "-"),
+          config.VALIDATOR_ADDRESS,
+          model.modelOwner,
+          model.modelName
+        );
+      };
+
       const save = async (logInfo?: boolean) => {
         for (const [dirPath, responses] of Object.entries(allResponses)) {
+          if (responses.length === 0) continue;
+
           mkdirSync(join(config.OUTPUT_DIR, dirPath), { recursive: true });
-          const evaluationName =
-            responses.length > 0
-              ? parseEvaluationDID(responses[0].evaluationDID)
-              : taskName;
+          const taskName = parseTaskDID(responses[0].taskDID).replace("/", "-");
           const path = await saveArray(
             // No need to store evaluation DID inside the schema since
             // it is available in the folder structure
-            responses.map((res) => ({ ...res, evaluationDID: undefined })),
+            responses,
             options.type,
             {
-              fileNamePrefix: `responses-${evaluationName}`,
+              fileNamePrefix: `responses-${taskName}`,
               fileNameSuffix: startedAt,
               dirPath: dirPath,
             }
@@ -115,8 +118,8 @@ program
       try {
         await prompt(commandConfig.models, commandConfig.tasks, {
           maxPrompt: options.maxPrompts,
-          onResponseReceived: (response) => {
-            const path = findResponseSavePath(response);
+          onResponseReceived: async (response) => {
+            const path = await findResponseSavePath(response);
             if (!allResponses[path]) {
               allResponses[path] = [];
             }
@@ -140,110 +143,141 @@ program
     "-t, --type <type>",
     'Output file type, "json" or "csv". Default is json'
   )
-
+  .option(
+    "-n, --task <name>",
+    "Task identifier name that is going to be used to find the correct files or place outputs."
+  )
   .argument(
     "[response files...]",
     "Response files. If not given any, uses the responses from the given task name"
   )
-  .action(async (files: string[], rawOptions: { type?: string }) => {
-    logger.debug(`Validator DID ${yellow.bold(config.VALIDATOR_DID)}`);
-    const options = checkValidationError(
-      z
-        .object({ type: z.enum(["json", "csv"]).default("json") })
-        .safeParse(rawOptions)
-    );
-
-    if (program.opts().task === undefined) {
-      logger.warning(
-        `Task name is not given, using the default one which is "default"`
-      );
-    }
-
-    const startedAt = Date.now().toString();
-    const taskName = program.opts().task || "default";
-
-    if (files.length === 0) {
-      files = goIntoDir(config.OUTPUT_DIR, {
-        depth: 4,
-        map: (files) => {
-          const lastFile = getLatestFile(files);
-          if (lastFile) {
-            return [lastFile];
-          }
-          return [];
-        },
-        filter: (pathInfo) => {
-          const regex = new RegExp(`responses-${taskName}-(\\d+)`, "i");
-          const nameMatch = pathInfo.name.match(regex);
-
-          return [".json", ".csv"].includes(pathInfo.ext) && nameMatch
-            ? true
-            : false;
-        },
-      });
-    }
-
-    if (files.length === 0) {
-      throw new Error(
-        `No response files found for task "${taskName}". Please try to run "prompt" command`
-      );
-    }
-
-    const allScores = await score(files);
-    const scorePaths: Record<string, PromptScore[]> = {};
-
-    for (const score of allScores) {
-      const dirPath = join(
-        taskName,
-        config.VALIDATOR_ADDRESS,
-        parseModelDID(score.modelDID)
+  .action(
+    async (files: string[], rawOptions: { type?: string; task?: string }) => {
+      logger.debug(`Validator DID ${yellow.bold(config.VALIDATOR_DID)}`);
+      const options = checkValidationError(
+        z
+          .object({
+            type: z.enum(["json", "csv"]).default("json"),
+            task: z.string().default("default"),
+          })
+          .safeParse(rawOptions)
       );
 
-      if (!scorePaths[dirPath]) {
-        scorePaths[dirPath] = [];
+      if (rawOptions.task === undefined) {
+        logger.warning(
+          `Task name is not given, using the default one which is "default"`
+        );
       }
 
-      scorePaths[dirPath].push(score);
-    }
+      const startedAt = Date.now().toString();
 
-    for (const [dirPath, scores] of Object.entries(scorePaths)) {
-      mkdirSync(join(config.OUTPUT_DIR, dirPath), { recursive: true });
-      const scoresPath = await saveArray(scores, options.type, {
-        fileNamePrefix: `scores-${taskName}`,
-        fileNameSuffix: startedAt,
-        dirPath: dirPath,
-      });
-      const noDataPath = await saveArray(
-        scores.map<PromptScore>((score) => ({
-          ...score,
-          promptData: undefined,
-          responseData: undefined,
-          correctResponse: undefined,
-        })),
-        options.type,
-        {
-          fileNamePrefix: `scores.nodata-${taskName}`,
+      if (files.length === 0) {
+        files = goIntoDir(config.OUTPUT_DIR, {
+          depth: 4,
+          map: (files) => {
+            const lastFile = getLatestFile(files);
+            if (lastFile) {
+              return [lastFile];
+            }
+            return [];
+          },
+          filter: (pathInfo) => {
+            const regex = new RegExp(`responses-${options.task}-(\\d+)`, "i");
+            const nameMatch = pathInfo.name.match(regex);
+
+            return [".json", ".csv"].includes(pathInfo.ext) && nameMatch
+              ? true
+              : false;
+          },
+        });
+      }
+
+      if (files.length === 0) {
+        throw new Error(
+          `No response files found for task "${options.task}". Please try to run "prompt" command`
+        );
+      }
+
+      const allScores = await score(files);
+      const scorePaths: Record<string, PromptScore[]> = {};
+
+      for (const score of allScores) {
+        const taskName = parseTaskDID(score.taskDID).replace("/", "-");
+        const provider = getProvider(parseProviderDID(score.providerDID))!;
+        const model = await provider.parseModelIdentifier(
+          parseModelDID(score.modelDID)
+        );
+
+        // TODO: include sub provider name into the path
+        const dirPath = join(
+          taskName,
+          config.VALIDATOR_ADDRESS,
+          model.modelOwner,
+          model.modelName
+        );
+
+        if (!scorePaths[dirPath]) {
+          scorePaths[dirPath] = [];
+        }
+
+        scorePaths[dirPath].push(score);
+      }
+
+      for (const [dirPath, scores] of Object.entries(scorePaths)) {
+        mkdirSync(join(config.OUTPUT_DIR, dirPath), { recursive: true });
+        const scoresPath = await saveArray(scores, options.type, {
+          fileNamePrefix: `scores-${options.task}`,
           fileNameSuffix: startedAt,
           dirPath: dirPath,
-        }
-      );
+        });
+        const noDataPath = await saveArray(
+          scores.map<PromptScore>((score) => ({
+            ...score,
+            promptData: undefined,
+            responseData: undefined,
+            correctResponse: undefined,
+          })),
+          options.type,
+          {
+            fileNamePrefix: `scores.nodata-${options.task}`,
+            fileNameSuffix: startedAt,
+            dirPath: dirPath,
+          }
+        );
 
-      logger.info(`${options.type.toUpperCase()} saved to ${scoresPath}`);
-      logger.info(`${options.type.toUpperCase()} saved to ${noDataPath}`);
+        logger.info(`${options.type.toUpperCase()} saved to ${scoresPath}`);
+        logger.info(`${options.type.toUpperCase()} saved to ${noDataPath}`);
+      }
     }
-  })
+  )
   .allowUnknownOption(true);
 
 program
   .command("aggregate")
   .alias("agg")
   .description("Aggregates the given scores")
+  .option(
+    "-n, --task <name>",
+    "Task identifier name that is going to be used to find the correct files or place outputs."
+  )
   .argument(
     "[score files...]",
     "Score files. If not given any, uses the responses from the given task"
   )
-  .action(async (files: string[]) => {
-    const taskName = program.opts().task || "default";
+  .action(async (files: string[], rawOptions: { task?: string }) => {
+    const options = checkValidationError(
+      z
+        .object({
+          task: z.string().default("default"),
+        })
+        .safeParse(rawOptions)
+    );
+
+    if (rawOptions.task === undefined) {
+      logger.warning(
+        `Task name is not given, using the default one which is "default"`
+      );
+    }
 
     if (files.length === 0) {
       files = goIntoDir(config.OUTPUT_DIR, {
@@ -256,7 +290,7 @@ program
           return [];
         },
         filter: (pathInfo) => {
-          const regex = new RegExp(`scores-${taskName}-(\\d+)`, "i");
+          const regex = new RegExp(`scores-${options.task}-(\\d+)`, "i");
           const nameMatch = pathInfo.name.match(regex);
 
           return [".json", ".csv"].includes(pathInfo.ext) && nameMatch
@@ -268,10 +302,10 @@ program
 
     if (files.length === 0) {
       throw new Error(
-        `No score files found for task "${taskName}". Please try to run "score" command`
+        `No score files found for task "${options.task}". Please try to run "score" command`
       );
     }
-    await aggregate(files, taskName);
+    await aggregate(files, options.task);
   })
   .allowUnknownOption(true);
 
@@ -387,8 +421,8 @@ async function saveArray<T>(
     encoding: "utf-8",
   });
 
-  await signFile(path);
-  await hashFile(path);
+  const hash = await hashFile(path);
+  await signFile(path, hash);
 
   return path;
 }

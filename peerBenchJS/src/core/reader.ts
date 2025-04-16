@@ -3,6 +3,7 @@ import { logger } from "./logger";
 import { parse as parsePath } from "path";
 import { MMLUProTaskReader } from "@/readers/mmlu-pro";
 import { CustomTaskReader } from "@/readers/custom";
+import { parseTaskDID } from "./parser";
 
 /**
  * Add all the possible task file readers in this array
@@ -20,10 +21,11 @@ export async function readTask(path: string) {
   for (const reader of taskReaders) {
     try {
       const task = await reader.parseFromFile(path);
+      const taskName = parseTaskDID(task.did);
 
       // If the task name doesn't exist, just use the file name (without extension) as its name
-      if (task.name === "") {
-        task.name = parsePath(path).name;
+      if (taskName === "") {
+        task.did = `did:task:${parsePath(path).name}`;
       }
 
       return task;
