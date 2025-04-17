@@ -45,10 +45,7 @@ This document outlines the mathematical framework describing the operation of th
 
     * **Step 2.2: Score Submission (Original)**
         * Validator $O(t)$ calculates scores for all models $m \in \mathcal{M}$:
-
-            $$
-            S_{O(t), k(t), m} = \text{clamp}( T_{k(t),m} + \beta(O(t), m, \text{original}) + \eta_{O(t),k(t),m}, 0, 1 )
-            $$
+            * $S_{O(t), k(t), m} = \text{clamp}( T_{k(t),m} + \beta(O(t), m, \text{original}) + \eta_{O(t),k(t),m}, 0, 1 )$
 
             where $\text{clamp}(x, a, b) = \max(a, \min(x, b))$.
         * Add original submissions $s_{orig} = (O(t), k(t), m, S_{O(t),k(t),m}, \text{original}, O(t), t)$ for each $m$ to $R(t-1)$ to form intermediate store $R'(t)$.
@@ -56,57 +53,43 @@ This document outlines the mathematical framework describing the operation of th
     * **Step 2.3: Score Submission (Cross-Validation)**
         * For each cross-validator $j \in XVal(t)$:
             * Validator $j$ calculates scores for all models $m \in \mathcal{M}$:
-
-                $$
-                S_{j, k(t), m} = \text{clamp}( T_{k(t),m} + \beta(j, m, \text{cross}) + \eta_{j,k(t),m}, 0, 1 )
-                $$
-
-                (Note: $\beta(j, m, \text{cross}) = 0$).
+               * $S_{j, k(t), m} = \text{clamp}( T_{k(t),m} + \beta(j, m, \text{cross}) + \eta_{j,k(t),m}, 0, 1 )$
+                 (Note: $\beta(j, m, \text{cross}) = 0$).
             * Add cross-validation submissions $s_{cross,j} = (j, k(t), m, S_{j,k(t),m}, \text{cross}, O(t), t)$ for each $m$ to $R'(t)$ to form the full results store $R(t)$.
 
     * **Step 2.4: Calculate Weighted Mean of Cross-Validations**
         * For the current test $k(t)$ and each model $m \in \mathcal{M}$:
             * Retrieve cross-validation scores $\{S_{j,k(t),m} | j \in XVal(t)\}$ and previous credibilities $\{C_j(t-1) | j \in XVal(t)\}$.
             * Calculate the weighted mean $WMean_{k(t),m}$:
-
-                $ \text{Numerator} = \sum_{j \in XVal(t)} S_{j,k(t),m} \cdot C_j(t-1) $
-
-                $ \text{Denominator} = \sum_{j \in XVal(t)} C_j(t-1) $
-
-                $ WMean_{k(t),m} = \frac{\text{Numerator}}{\max(\text{Denominator}, \epsilon)} $
-
-                (where $\epsilon$ is a small positive constant, e.g., $10^{-9}$).
+               * $\text{Numerator} = \sum_{j \in XVal(t)} S_{j,k(t),m} \cdot C_j(t-1)$
+               * $\text{Denominator} = \sum_{j \in XVal(t)} C_j(t-1)$
+               * $WMean_{k(t),m} = \frac{\text{Numerator}}{\max(\text{Denominator}, \epsilon)}$
+                 (where $\epsilon$ is a small positive constant, e.g., $10^{-9}$).
 
     * **Step 2.5: Calculate Discrepancy for Originator**
         * Retrieve the original scores $S_{O(t),k(t),m}$ for test $k(t)$.
         * Calculate a discrepancy measure, $\Delta_{O(t), k(t)}$. Example: Average Absolute Difference:
-
-            $ \Delta_{O(t), k(t)} = \frac{1}{M} \sum_{m \in \mathcal{M}} | S_{O(t),k(t),m} - WMean_{k(t),m} | $
+            * $\Delta_{O(t), k(t)} = \frac{1}{M} \sum_{m \in \mathcal{M}} | S_{O(t),k(t),m} - WMean_{k(t),m} |$
 
     * **Step 2.6: Update Credibility Scores**
         * Define a credibility update function $f(\Delta, C_{old})$. Example using learning rate $L$ and penalty factor $P$:
-
-            $ \text{Change} = L \cdot (1 - P \cdot \Delta) $
-
-            $ C'_{O(t)}(t) = C_{O(t)}(t-1) + \text{Change} $
-
-            $ C_{O(t)}(t) = \text{clamp}( C'_{O(t)}(t), C_{min}, C_{max} ) $
+           * $\text{Change} = L \cdot (1 - P \cdot \Delta)$
+           * $C^1_{O(t)}(t) = C_{O(t)}(t-1) + \text{Change}$
+           * $C_{O(t)}(t) = \text{clamp}( C^1_{O(t)}(t), C_{min}, C_{max} )$
 
         * For all other validators $j \neq O(t)$:
-
-            $ C_j(t) = C_j(t-1) $
+           * $C_j(t) = C_j(t-1)$
 
     * **Step 2.7: Recalculate Final Model Scores (Retroactive)**
         * For each model $m \in \mathcal{M}$:
-            * Initialize $\text{Num}_m = 0$, $\text{Denom}_m = 0$.
+            * Initialize $Num_m = 0$, $Denom_m = 0$.
             * Iterate through *all* submissions $s = (i_s, k_s, m_s, S_s, \tau_s, O_s, t_s)$ in the *entire history* $R(t)$.
             * If $m_s = m$:
                 * Retrieve the *current* credibility $C_{i_s}(t)$ for the submitter $i_s$.
-                * $\text{Num}_m = \text{Num}_m + S_s \cdot C_{i_s}(t)$
-                * $\text{Denom}_m = \text{Denom}_m + C_{i_s}(t)$
+                * $Num_m = Num_m + S_s \cdot C_{i_s}(t)$
+                * $Denom_m = Denom_m + C_{i_s}(t)$
             * Calculate the final score for model $m$ at step $t$:
-
-                $ F_m(t) = \frac{\text{Num}_m}{\max(\text{Denom}_m, \epsilon)} $
+                * $F_m(t) = \frac{Num_m}{\max(Denom_m, \epsilon)}$
 
 **3. Goal Demonstration**
 
