@@ -1,0 +1,4 @@
+{
+  "tasks": ["data/tasks/mmlu-pro.parquet"],
+  "models": ["openrouter.ai:meta-llama/llama-4-scout"]
+}

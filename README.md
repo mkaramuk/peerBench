@@ -16,8 +16,13 @@ Requiring recency of test data is another approach  taken by LiveBench[^48] but 
 
 **Centralized private test data evaluation** is another approach that has been attempted to resolve the problem of AI companies gaming benchmark results. One currently active private evaluator is the SEAL LLM Leaderboards[^46] by Scale.ai[^47]. However, this lacks the transparency and audibility to be fully trustworthy and widely used as a standard. 
 
-**Decentralised systems are strongly positioned to solve** all of those issues thanks to providing proper incentivization to all parties involved while leveraging blockchains' decentralisation and transparency. **Private datasets** still can be a fundamental **part of the validation strategy**. Especially given current **advancement in privacy technologies like TEEs, ZKPs and FHE**.
+**Decentralised systems are strongly positioned to solve** all of those issues thanks to providing proper incentivization to all parties involved while leveraging blockchains' decentralisation and transparency. **Private datasets** still can be a fundamental **part of the validation strategy**. 
 
+# Test Data Quality Control Process 
+
+# Become a Validator 
+
+# Get Your Model Benchmarked 
 
 
 [^45]:  Link: https://arxiv.org/abs/2104.14337

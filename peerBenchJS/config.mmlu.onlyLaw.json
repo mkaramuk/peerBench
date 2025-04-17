@@ -1,0 +1,4 @@
+{
+  "tasks": ["./data/tasks/mmlu-pro.onlyLaw.json"],
+  "models": ["openrouter.ai:google/gemma-3-4b-it"]
+}

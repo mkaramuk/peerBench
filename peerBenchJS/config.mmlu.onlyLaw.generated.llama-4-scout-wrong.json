@@ -1,0 +1,4 @@
+{
+  "tasks": ["./data/tasks/mmlu-pro.onlyLaw.generated.llama-4-scout-wrong.json"],
+  "models": ["openrouter.ai:meta-llama/llama-4-scout"]
+}

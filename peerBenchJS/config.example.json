@@ -1,0 +1,11 @@
+{
+  "tasks": ["./data/tasks/mmlu-pro/mmlu-pro.onlyHistory.jsonl"],
+  "models": [
+    "openrouter.ai:openai/chatgpt-4o-latest",
+    "openrouter.ai:google/gemini-2.0-flash-001",
+    "openrouter.ai:google/gemini-2.0-flash-lite-001",
+    "openrouter.ai:meta-llama/llama-4-scout",
+    "openrouter.ai:meta-llama/llama-4-maverick",
+    "openrouter.ai:mistralai/mistral-small-3.1-24b-instruct"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "tasks": ["./data/tasks/mmlu-pro.onlyHistory.jsonl"],
+  "models": [
+    "openrouter.ai:google/gemma-3-4b-it",
+    "openrouter.ai:meta-llama/llama-4-scout",
+    "openrouter.ai:mistralai/mistral-small-3.1-24b-instruct"
+  ]
+}
