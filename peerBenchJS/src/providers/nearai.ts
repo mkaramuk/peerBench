@@ -10,6 +10,8 @@ const NearAIEnv = {
   CONFIG_PATH: z.string().default(join(homedir(), ".nearai", "config.json")),
   RATE_LIMIT: z.coerce.number().default(1),
   RATE_LIMIT_TIME_WINDOW: z.coerce.number().default(3000),
+  TIMEOUT: z.coerce.number().default(60_0000), // 1 minute
+  MAX_RETRIES: z.coerce.number().default(3),
 };
 
 export class NearAIProvider extends AbstractProvider<typeof NearAIEnv> {
@@ -35,7 +37,8 @@ export class NearAIProvider extends AbstractProvider<typeof NearAIEnv> {
     this.client = new OpenAI({
       baseURL: "https://api.near.ai/v1",
       apiKey: JSON.stringify(config?.auth),
-      timeout: 60_0000, // 1 min
+      maxRetries: this.env.MAX_RETRIES,
+      timeout: this.env.TIMEOUT,
     });
   }
 
@@ -66,9 +69,8 @@ export class NearAIProvider extends AbstractProvider<typeof NearAIEnv> {
   ): Promise<ModelResponse> {
     await this.enforceRateLimit();
 
-    let response = "";
     const startedAt = new Date();
-    const result = await this.client.chat.completions.create({
+    const response = await this.client.chat.completions.create({
       model,
       messages: [
         {
@@ -82,21 +84,17 @@ export class NearAIProvider extends AbstractProvider<typeof NearAIEnv> {
       ],
     });
 
-    if ("error" in result) {
-      const err = result.error as any;
+    if ("error" in response) {
+      const err = response.error as any;
       throw new Error(
         `${err.message} - Code ${err.code} - ${JSON.stringify(err)}`
       );
     }
 
-    response = result.choices[0].message.content || "";
-
-    const completedAt = new Date();
-
     return {
-      response,
+      response: response?.choices?.[0]?.message?.content || "",
       startedAt,
-      completedAt,
+      completedAt: new Date(),
     };
   }
 

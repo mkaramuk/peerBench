@@ -8,7 +8,7 @@ import { z } from "zod";
  * Base class for Providers
  */
 export abstract class AbstractProvider<
-  T extends Record<string, z.ZodTypeAny> = Record<string, z.ZodTypeAny>
+  T extends Record<string, z.ZodTypeAny> = Record<string, z.ZodTypeAny>,
 > {
   readonly name: string;
 

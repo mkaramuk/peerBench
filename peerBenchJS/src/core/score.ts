@@ -31,11 +31,15 @@ export async function score(
         // Look for some patterns for the answer
         const answer = lookForAnswer(promptResponse.responseData, [
           {
-            regex: /The (?:(best|final|correct) )?answer is ([A-Z])/i,
-            answerGroupIndex: 2,
+            regex: /answer is\s+([A-Z])/gi,
+            answerGroupIndex: 1,
           },
           {
-            regex: /([A-Z]):.+/,
+            regex: /answer is\s+\**([A-Z])\**/gi,
+            answerGroupIndex: 1,
+          },
+          {
+            regex: /([A-Z]):.+/g,
             answerGroupIndex: 1,
           },
         ]);
@@ -63,7 +67,9 @@ function lookForAnswer(
   }[]
 ) {
   for (const pattern of patterns) {
-    const match = response.match(pattern.regex);
+    const matches = Array.from(response.matchAll(pattern.regex));
+    const match = matches.at(-1);
+
     if (match) {
       return match[pattern.answerGroupIndex];
     }

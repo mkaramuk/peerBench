@@ -1,6 +1,11 @@
 {
-  "tasks": ["./data/tasks/mmlu-pro/mmlu-pro.onlyHistory.jsonl"],
+  "tasks": [
+    "data/tasks/mmlu-pro/mmlu-pro.parquet",
+    "data/tasks/bigbench/social_iqa.json"
+  ],
   "models": [
+    "near.ai:fireworks::accounts/fireworks/models/deepseek-v3",
+    "near.ai:fireworks::accounts/fireworks/models/llama-v3p1-8b-instruct",
     "openrouter.ai:openai/chatgpt-4o-latest",
     "openrouter.ai:google/gemini-2.0-flash-001",
     "openrouter.ai:google/gemini-2.0-flash-lite-001",

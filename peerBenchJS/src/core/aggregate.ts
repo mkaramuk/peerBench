@@ -1,18 +1,23 @@
-import { PromptScore } from "@/types";
-import { parseModelDID, parseProviderDID, tryParseJson } from "./parser";
-import { readableTime, readFile } from "./utils";
+import {
+  AggregationResult as AggregationResults,
+  PromptScoreSchema,
+} from "@/types";
+import { checkValidationError, readFile } from "./utils";
 import { logger } from "./logger";
-import { blue, cyan, green, magenta, red, yellow } from "ansis";
-import { table as formatTable } from "table";
+import { z } from "zod";
 
-export async function aggregate(scoreFilePaths: string[], taskName: string) {
+export async function aggregate(
+  scoreFilePaths: string[]
+): Promise<AggregationResults> {
   const scores = scoreFilePaths
     .map((path) => {
       try {
-        const content = readFile(path);
-        // TODO: Also validate the data with a Zod schema
         // TODO: Make it possible to read CSV files
-        return tryParseJson<PromptScore[]>(content);
+        const content = readFile(path);
+        const arraySchema = z.array(PromptScoreSchema);
+        const json = JSON.parse(content);
+
+        return checkValidationError(arraySchema.safeParse(json));
       } catch (err) {
         logger.warning(`Score file ${path} couldn't read: ${err}`);
       }
@@ -20,60 +25,97 @@ export async function aggregate(scoreFilePaths: string[], taskName: string) {
     .filter((s) => s !== undefined)
     .flat();
 
+  if (scores.length === 0) {
+    throw new Error(`No scores read to aggregate`);
+  }
+
+  // We assume that all of the scores come from the same task
+  // otherwise they wouldn't be comparable so we can simply find
+  // the taskDID by just looking at any of the score from the array.
+  const taskDID = scores[0].taskDID;
   const results: Record<
     string,
-    { score: number; latency: number; response: number; wrongAnswers: number }
+    {
+      score: number;
+      latency: number;
+      responseCount: number;
+      wrongAnswers: number;
+      modelDID: string;
+      providerDID: string;
+      runIds: Set<string>;
+      sourcePromptDatasetCIDs: Set<string>;
+      sourceFileNames: Set<string>;
+    }
   > = {};
 
+  const result: AggregationResults = [];
+
   for (const score of scores) {
-    const providerName = parseProviderDID(score.providerDID);
-    const model = parseModelDID(score.modelDID);
-    const key = `${providerName}:${model}`;
+    const key = `${score.providerDID}:${score.modelDID}`;
 
     if (!results[key]) {
-      results[key] = { score: 0, latency: 0, response: 0, wrongAnswers: 0 };
+      results[key] = {
+        providerDID: score.providerDID,
+        modelDID: score.modelDID,
+        score: 0,
+        latency: 0,
+        responseCount: 0,
+        wrongAnswers: 0,
+        runIds: new Set<string>(),
+        sourcePromptDatasetCIDs: new Set<string>(),
+        sourceFileNames: new Set<string>(),
+      };
     }
 
     results[key].score += score.score;
     results[key].latency += score.repliedAt - score.promptedAt;
-    results[key].response++;
+    results[key].responseCount++;
+
+    // Add runId to the set (this will handle duplicates automatically)
+    if (score.runId) {
+      results[key].runIds.add(score.runId);
+    }
+
+    // Add sourcePromptDatasetCID to the set
+    if (score.sourcePromptDatasetCID) {
+      results[key].sourcePromptDatasetCIDs.add(score.sourcePromptDatasetCID);
+    }
+
+    // Add sourceFileName to the set
+    if (score.sourceFileName) {
+      results[key].sourceFileNames.add(score.sourceFileName);
+    }
 
     if (score.score === 0) {
       results[key].wrongAnswers++;
     }
   }
 
-  const data: any[] = [];
-
-  for (const [providerAndModel, values] of Object.entries(results)) {
-    data.push([
-      providerAndModel,
-      values.response,
-      values.score,
-      values.wrongAnswers,
-      readableTime(values.latency / values.response / 1000),
-      (values.score / values.response).toFixed(2),
-    ]);
+  for (const [, values] of Object.entries(results)) {
+    result.push({
+      providerDID: values.providerDID,
+      modelDID: values.modelDID,
+      taskDID,
+      avgLatency: values.latency / values.responseCount / 1000,
+      avgScore: parseFloat((values.score / values.responseCount).toFixed(2)),
+      missingAnswers: Math.abs(
+        values.responseCount - values.score - values.wrongAnswers
+      ),
+      score: values.score,
+      totalResponse: values.responseCount,
+      wrongAnswers: values.wrongAnswers,
+      score_runIds: Array.from(values.runIds),
+      sourcePromptDatasetCIDs: Array.from(values.sourcePromptDatasetCIDs),
+      sourceFileNames: Array.from(values.sourceFileNames),
+    });
   }
 
-  data.sort((a, b) => {
-    const aTotalResponse = parseFloat(a[1]);
-    const bTotalResponse = parseFloat(b[1]);
-
-    const aTotalScore = parseFloat(a[2]);
-    const bTotalScore = parseFloat(b[2]);
-
-    const aAverageLatency = parseFloat(a[4]);
-    const bAverageLatency = parseFloat(b[4]);
-
-    const aAverageScore = parseFloat(a[5]);
-    const bAverageScore = parseFloat(b[5]);
-
+  result.sort((a, b) => {
     const order = [
-      [bTotalScore, aTotalScore],
-      [aAverageScore, bAverageScore],
-      [aAverageLatency, bAverageLatency],
-      [bTotalResponse, aTotalResponse],
+      [b.score, a.score],
+      [a.avgScore, b.avgScore],
+      [a.avgLatency, b.avgLatency],
+      [b.totalResponse, a.totalResponse],
     ];
 
     for (const values of order) {
@@ -86,53 +128,5 @@ export async function aggregate(scoreFilePaths: string[], taskName: string) {
     return lastOrderColumn[0] - lastOrderColumn[1];
   });
 
-  console.log("Task:", taskName);
-  console.log(
-    formatTable(
-      [
-        [
-          "Rank",
-          "Provider:Model",
-          "Total Responses",
-          "Total Score",
-          "Wrong Answers",
-          "Avg. Latency",
-          "Avg. Score",
-        ],
-        ...data.map((row, i) => [
-          cyan.bold(i + 1),
-          magenta.bold(row[0]),
-          green.bold(row[1]),
-          yellow.bold(row[2]),
-          red.bold(row[3]),
-          blue.bold(row[4]),
-          yellow(row[5]),
-        ]),
-      ],
-      {
-        border: {
-          topBody: `─`,
-          topJoin: `┬`,
-          topLeft: `╭`,
-          topRight: `╮`,
-
-          bottomBody: `─`,
-          bottomJoin: `┴`,
-          bottomLeft: `╰`,
-          bottomRight: `╯`,
-
-          bodyLeft: `│`,
-          bodyRight: `│`,
-          bodyJoin: `│`,
-
-          joinBody: `─`,
-          joinLeft: `├`,
-          joinRight: `┤`,
-          joinJoin: `┼`,
-        },
-      }
-    )
-  );
-
-  return results;
+  return result;
 }

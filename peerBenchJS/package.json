@@ -1,7 +1,7 @@
 {
-  "name": "peer-bench",
+  "name": "peerbench",
   "version": "1.0.0",
-  "description": "Peer Becnch is a decentralized AI evaluation framework",
+  "description": "Peer Bench is a decentralized AI evaluation framework",
   "keywords": [
     "ai",
     "evaluation",
@@ -27,14 +27,17 @@
     "start": "node dist/index.js",
     "build": "tsup --onSuccess 'tsc-alias -p tsconfig.json -f'",
     "clean": "rm -rf dist",
-    "clean:outputs": "rm -rf data/output/*"
+    "clean:outputs": "rm -rf data/output/*",
+    "clean:logs": "rm -rf data/logs/*"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.39.1",
     "@inquirer/prompts": "^7.4.1",
     "ansis": "^3.17.0",
+    "axios": "^1.8.4",
     "commander": "^13.1.0",
     "csv": "^6.3.11",
+    "glob": "^11.0.2",
     "hyparquet": "^1.11.0",
     "multiformats": "^13.3.2",
     "openai": "^4.92.1",

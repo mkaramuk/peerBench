@@ -1,13 +1,21 @@
-import { readTask } from "./reader";
+import { readTask } from "./format";
 import { generateCID, readableTime } from "./utils";
 import { config } from "@/config";
 import { AbstractProvider } from "@/base/provider";
-import { MaybePromise, Prompt, PromptResponse, Task } from "@/types";
+import {
+  MaybePromise,
+  Prompt,
+  PromptOptions,
+  PromptResponse,
+  Task,
+} from "@/types";
 import { v7 as uuidv7 } from "uuid";
 import { parseProviderConfig } from "./parser";
 import { logger } from "./logger";
 import { blue, yellow } from "ansis";
 import { getProvider } from "./providers";
+import { basename } from "path";
+import { calculateSHA256 } from "./std";
 
 /**
  * Sends the prompts from the given task files to the given Providers and
@@ -35,10 +43,10 @@ export async function prompt(
 
   // Read all the tasks and make them usable
   const tasks = await Promise.all(
-    taskPaths.map((taskPath) => readTask(taskPath))
+    taskPaths.map(async (taskPath) => (await readTask(taskPath)).task)
   );
 
-  // Total amount of prompt request to be send
+  // Total amount of prompt request to be sent
   let totalPromptCount =
     tasks.reduce((acc, t) => acc + t.prompts.length, 0) * identifiers.length;
   let responseCount = 0;
@@ -50,12 +58,18 @@ export async function prompt(
     );
   }
 
-  for (const task of tasks) {
-    const evaluationRunId = uuidv7(); // New evaluation ID per given task
+  for (let taskIndex = 0; taskIndex < tasks.length; taskIndex++) {
+    const task = tasks[taskIndex];
+    const taskPath = taskPaths[taskIndex];
+    const taskFileName = basename(taskPath); // Ensure we always have a filename
+    const runId = uuidv7(); // New evaluation ID per given task
 
     logger.debug(
-      `Found ${task.prompts.length} prompt in ${yellow.bold(task.did)}`
+      `Found ${task.prompts.length} prompt in ${yellow.bold(
+        task.did
+      )} (${yellow.bold(taskFileName)})`
     );
+
     for (const identifier of identifiers) {
       const info = parseProviderConfig(identifier);
       if (info === undefined) {
@@ -72,21 +86,15 @@ export async function prompt(
       }
 
       promises.push(
-        execPrompts(
-          provider,
-          task,
-          info.modelIdentifier,
-          evaluationRunId,
-          (response) => {
-            responseCount++;
-            logger.info(
-              `${responseCount} prompt done, ${
-                totalPromptCount - responseCount
-              } prompt left`
-            );
-            options?.onResponseReceived?.(response);
-          }
-        )
+        execPrompts(provider, task, info.modelIdentifier, runId, (response) => {
+          responseCount++;
+          logger.info(
+            `${responseCount} prompt done (from ${yellow.bold(
+              taskFileName
+            )}), ${totalPromptCount - responseCount} prompt left`
+          );
+          options?.onResponseReceived?.(response);
+        })
       );
     }
   }
@@ -106,26 +114,12 @@ async function execPrompt(
   const providerLogger = provider.logger.child({
     context: `Provider(${provider.name}:${model})`,
   });
-  const promptIdentifier = `${promptNumber} from ${yellow.bold(task.did)}`;
+  const promptIdentifier = `${promptNumber} from ${yellow.bold(
+    task.did
+  )} (${yellow.bold(task.fileName)})`;
+
   try {
-    let input = prompt.data;
-    let correctResponse = prompt.correctResponse || "";
-
-    // Append answers to the input
-    if (prompt.answers !== undefined) {
-      input += "\n\n";
-      let letterIndex = 0;
-      for (const [answer, score] of Object.entries(prompt.answers)) {
-        const letter = String.fromCharCode(65 + letterIndex);
-        input += `${letter}: ${answer}\n`;
-
-        if (score === 1) {
-          correctResponse = letter;
-        }
-        letterIndex++;
-      }
-    }
-
+    const input = prompt.other.stdFullPromptText;
     const result = await provider.forward(
       input,
       model,
@@ -151,10 +145,11 @@ async function execPrompt(
       providerDID: provider.did,
       taskDID: task.did,
 
-      evalTypes: prompt.evalTypes,
       runId,
+      sourcePromptDatasetCID: task.cid,
+      sourceFileName: task.fileName,
 
-      correctResponse,
+      correctResponse: prompt.answer_idx,
       promptCID,
       responseCID,
 
@@ -163,6 +158,12 @@ async function execPrompt(
 
       promptedAt: result.startedAt.getTime(),
       repliedAt: result.completedAt.getTime(),
+
+      questionUUID: prompt.other?.stdQuestionUUID || uuidv7(),
+      questionHash: calculateSHA256(prompt.question),
+
+      fullPromptData: input,
+      fullPromptHash: calculateSHA256(input),
     };
     return promptResponse;
   } catch (err) {
@@ -192,4 +193,17 @@ async function execPrompts(
     );
   }
   await Promise.all(promises);
+}
+
+/**
+ * Prepares the whole prompt that is going to be asked to the model
+ */
+export function preparePrompt(question: string, options: PromptOptions) {
+  // Append answers to the result
+  let result = `${question}\n\n`;
+  for (const [letter, answer] of Object.entries(options)) {
+    result += `${letter}: ${answer}\n`;
+  }
+
+  return result;
 }

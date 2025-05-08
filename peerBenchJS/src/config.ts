@@ -43,9 +43,11 @@ const VALIDATOR_ACCOUNT = privateKeyToAccount(env.PRIVATE_KEY as Address);
 export const config = {
   ...env,
   OUTPUT_DIR: join(process.cwd(), "data", "output"),
+  DATA_DIR: join(process.cwd(), "data"),
   VALIDATOR_ADDRESS: VALIDATOR_ACCOUNT.address,
   VALIDATOR_DID: `did:val:${VALIDATOR_ACCOUNT.address}`,
   VALIDATOR_ACCOUNT,
 };
 
+// This also makes `data` directory
 mkdirSync(config.OUTPUT_DIR, { recursive: true });

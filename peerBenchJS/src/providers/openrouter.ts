@@ -8,6 +8,8 @@ const OpenRouterEnv = {
   KEY: z.string().nonempty(),
   RATE_LIMIT: z.coerce.number().default(20),
   RATE_LIMIT_TIME_WINDOW: z.coerce.number().default(3000),
+  TIMEOUT: z.coerce.number().default(60_0000), // 1 minute
+  MAX_RETRIES: z.coerce.number().default(3),
 };
 
 export class OpenRouterProvider extends AbstractProvider<typeof OpenRouterEnv> {
@@ -24,7 +26,8 @@ export class OpenRouterProvider extends AbstractProvider<typeof OpenRouterEnv> {
     this.client = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: this.env.KEY,
-      timeout: 60_0000, // 1 min
+      maxRetries: this.env.MAX_RETRIES,
+      timeout: this.env.TIMEOUT,
     });
   }
 
@@ -55,9 +58,8 @@ export class OpenRouterProvider extends AbstractProvider<typeof OpenRouterEnv> {
   ): Promise<ModelResponse> {
     await this.enforceRateLimit();
 
-    let response = "";
     const startedAt = new Date();
-    const result = await this.client.chat.completions.create({
+    const response = await this.client.chat.completions.create({
       model,
       messages: [
         {
@@ -71,21 +73,17 @@ export class OpenRouterProvider extends AbstractProvider<typeof OpenRouterEnv> {
       ],
     });
 
-    if ("error" in result) {
-      const err = result.error as any;
+    if ("error" in response) {
+      const err = response.error as any;
       throw new Error(
         `${err.message} - Code ${err.code} - ${JSON.stringify(err)}`
       );
     }
 
-    response = result.choices[0].message.content || "";
-
-    const completedAt = new Date();
-
     return {
-      response,
+      response: response?.choices?.[0]?.message?.content || "",
       startedAt,
-      completedAt,
+      completedAt: new Date(),
     };
   }
 
