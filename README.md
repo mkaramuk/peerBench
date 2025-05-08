@@ -1,3 +1,7 @@
+Getting started  
+CLI (primary): https://github.com/peerbench/peerBench/tree/main/peerBenchJS  
+UI (beta)    : https://dev-peer-bench-js.vercel.app/dashboard  
+
 # The problem:   
 Public benchmark test data sets make AI model performance comparable.  But this creates an incentivization for closed source models to cheat the benchmarks  by training on test data or creating heuristics that overfit the benchmark test dataset .
 
