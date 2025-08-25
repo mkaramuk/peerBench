@@ -1,0 +1,1 @@
+ALTER TABLE "prompt_sets" ADD CONSTRAINT "prompt_sets_title_unique" UNIQUE("title");
