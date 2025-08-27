@@ -4,5 +4,6 @@ export class ForwardError extends Error {
   constructor(message: string, options?: ErrorOptions & { startedAt: Date }) {
     super(message, options);
     this.startedAt = options?.startedAt || new Date();
+    Error.captureStackTrace(this, this.constructor);
   }
 }

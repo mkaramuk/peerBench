@@ -244,9 +244,3 @@ export type PromptScore = z.infer<typeof PromptScoreSchema>;
 export type MaybePromise<T> = T | Promise<T>;
 
 export type PromptOptions = Record<string, string>;
-
-export type ModelResponse = {
-  startedAt: Date;
-  completedAt: Date;
-  response: string;
-};

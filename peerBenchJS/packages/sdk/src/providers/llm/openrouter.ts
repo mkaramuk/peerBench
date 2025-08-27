@@ -6,20 +6,16 @@ import {
   LargeLanguageModelOwnerType,
   LargeLanguageModelType,
   ModelInfo,
-} from "@/base/llmprovider";
+} from "@/providers/llm/base-llm-provider";
 import OpenAI from "openai";
 
-export type OpenRouterProviderOptions = Omit<
-  BaseLLMProviderOptions,
-  "baseURL" | "name"
->;
-
 export class OpenRouterProvider extends BaseLLMProvider {
+  readonly identifier = "openrouter.ai";
+
   constructor(options: OpenRouterProviderOptions) {
     super({
       ...options,
       baseURL: "https://openrouter.ai/api/v1",
-      name: "openrouter.ai",
     });
   }
 
@@ -98,7 +94,9 @@ export class OpenRouterProvider extends BaseLLMProvider {
       id,
       name,
       owner,
-      provider: this.name.toLowerCase(),
+      provider: this.identifier.toLowerCase(),
     };
   }
 }
+
+export type OpenRouterProviderOptions = Omit<BaseLLMProviderOptions, "baseURL">;

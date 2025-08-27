@@ -6,20 +6,16 @@ import {
   LargeLanguageModelOwnerType,
   LargeLanguageModelType,
   ModelInfo,
-} from "@/base/llmprovider";
+} from "@/providers/llm/base-llm-provider";
 import OpenAI from "openai";
 
-export type NearAIProviderOptions = Omit<
-  BaseLLMProviderOptions,
-  "baseURL" | "name"
->;
-
 export class NearAIProvider extends BaseLLMProvider {
+  readonly identifier = "near.ai";
+
   constructor(options: NearAIProviderOptions) {
     super({
       ...options,
       baseURL: "https://api.near.ai/v1",
-      name: "near.ai",
     });
   }
 
@@ -83,7 +79,9 @@ export class NearAIProvider extends BaseLLMProvider {
       name,
       owner,
       host,
-      provider: this.name.toLowerCase(),
+      provider: this.identifier.toLowerCase(),
     };
   }
 }
+
+export type NearAIProviderOptions = Omit<BaseLLMProviderOptions, "baseURL">;
